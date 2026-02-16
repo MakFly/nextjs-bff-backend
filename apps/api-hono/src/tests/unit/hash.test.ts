@@ -1,0 +1,82 @@
+/**
+ * Unit tests for password hashing
+ */
+
+import { describe, it, expect } from 'bun:test';
+import { hashPassword, verifyPassword } from '../../lib/hash.ts';
+
+describe('Password Hashing', () => {
+  describe('hashPassword', () => {
+    it('should hash a password', async () => {
+      const password = 'mySecurePassword123';
+      const hash = await hashPassword(password);
+
+      expect(hash).toBeDefined();
+      expect(hash).not.toBe(password);
+      expect(hash.length).toBeGreaterThan(0);
+    });
+
+    it('should generate different hashes for the same password', async () => {
+      const password = 'mySecurePassword123';
+      const hash1 = await hashPassword(password);
+      const hash2 = await hashPassword(password);
+
+      expect(hash1).not.toBe(hash2);
+    });
+
+    it('should generate bcrypt format hash', async () => {
+      const password = 'test';
+      const hash = await hashPassword(password);
+
+      // Bcrypt hashes start with $2
+      expect(hash.startsWith('$2')).toBe(true);
+    });
+  });
+
+  describe('verifyPassword', () => {
+    it('should verify correct password', async () => {
+      const password = 'mySecurePassword123';
+      const hash = await hashPassword(password);
+
+      const isValid = await verifyPassword(password, hash);
+
+      expect(isValid).toBe(true);
+    });
+
+    it('should reject incorrect password', async () => {
+      const password = 'mySecurePassword123';
+      const hash = await hashPassword(password);
+
+      const isValid = await verifyPassword('wrongPassword', hash);
+
+      expect(isValid).toBe(false);
+    });
+
+    it('should reject empty password', async () => {
+      const password = 'mySecurePassword123';
+      const hash = await hashPassword(password);
+
+      const isValid = await verifyPassword('', hash);
+
+      expect(isValid).toBe(false);
+    });
+
+    it('should handle special characters in password', async () => {
+      const password = 'p@$$w0rd!#$%^&*()';
+      const hash = await hashPassword(password);
+
+      const isValid = await verifyPassword(password, hash);
+
+      expect(isValid).toBe(true);
+    });
+
+    it('should handle unicode characters', async () => {
+      const password = 'пароль密码🔐';
+      const hash = await hashPassword(password);
+
+      const isValid = await verifyPassword(password, hash);
+
+      expect(isValid).toBe(true);
+    });
+  });
+});
