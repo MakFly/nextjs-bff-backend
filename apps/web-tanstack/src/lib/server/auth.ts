@@ -1,56 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getCookie } from '@tanstack/react-start/server'
 import { getAuthAdapter, toUser, COOKIE_NAMES } from '../adapters'
-import { getTokenExpirationFromTimestamp } from '../services/token-service'
-
-export type TokenStatusInfo = {
-  expiresAt: number | null
-  remainingSeconds: number
-  isExpired: boolean
-  shouldRefresh: boolean
-  shouldWarn: boolean
-}
-
-export const getTokenStatusFn = createServerFn({ method: 'GET' })
-  .handler(async (): Promise<TokenStatusInfo> => {
-    const expiresValue =
-      getCookie(COOKIE_NAMES.TOKEN_EXPIRES_AT) ??
-      getCookie('auth_token_expires_at') ??
-      getCookie('expires_at')
-
-    if (!expiresValue) {
-      return {
-        expiresAt: null,
-        remainingSeconds: 0,
-        isExpired: true,
-        shouldRefresh: true,
-        shouldWarn: true,
-      }
-    }
-
-    const info = getTokenExpirationFromTimestamp(expiresValue)
-    if (!info) {
-      return {
-        expiresAt: null,
-        remainingSeconds: 0,
-        isExpired: true,
-        shouldRefresh: true,
-        shouldWarn: true,
-      }
-    }
-
-    return {
-      ...info,
-      expiresAt: info.expiresAt,
-    }
-  })
 
 export const loginFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { email: string; password: string }) => data)
   .handler(async ({ data }) => {
     const adapter = getAuthAdapter()
     const response = await adapter.login(data)
-    return { user: toUser(response.user) }
+    return { user: toUser(response.user), expiresIn: response.tokens.expires_in ?? null }
   })
 
 export const registerFn = createServerFn({ method: 'POST' })
@@ -58,7 +15,7 @@ export const registerFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const adapter = getAuthAdapter()
     const response = await adapter.register(data)
-    return { user: toUser(response.user) }
+    return { user: toUser(response.user), expiresIn: response.tokens.expires_in ?? null }
   })
 
 export const logoutFn = createServerFn({ method: 'POST' })
@@ -73,14 +30,24 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' })
     const adapter = getAuthAdapter()
     const normalized = await adapter.getUser()
     if (!normalized) return null
-    return toUser(normalized)
+
+    let expiresIn: number | null = null
+    const expiresValue = getCookie(COOKIE_NAMES.TOKEN_EXPIRES_AT)
+    if (expiresValue) {
+      const expiresAt = new Date(expiresValue).getTime()
+      if (!isNaN(expiresAt)) {
+        expiresIn = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+      }
+    }
+
+    return { user: toUser(normalized), expiresIn }
   })
 
 export const refreshTokenFn = createServerFn({ method: 'POST' })
   .handler(async () => {
     const adapter = getAuthAdapter()
     const response = await adapter.refresh()
-    return { user: toUser(response.user) }
+    return { user: toUser(response.user), expiresIn: response.tokens.expires_in ?? null }
   })
 
 export const getOAuthUrlFn = createServerFn({ method: 'POST' })

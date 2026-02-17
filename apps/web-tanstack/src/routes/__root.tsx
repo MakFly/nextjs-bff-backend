@@ -6,14 +6,15 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { useEffect, useCallback } from 'react'
 
 import appCss from '../styles.css?url'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { getCurrentUserFn } from '@/lib/server/auth'
 import { useAuthStore } from '@/stores/auth-store'
+import { useTokenRefresh } from '@/components/auth/use-token-refresh'
 import type { RouterContext } from '@/types/router'
-import { useEffect } from 'react'
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
@@ -27,10 +28,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
   beforeLoad: async () => {
     try {
-      const user = await getCurrentUserFn()
-      return { user }
+      const result = await getCurrentUserFn()
+      if (!result) return { user: null, expiresIn: null }
+      return { user: result.user, expiresIn: result.expiresIn }
     } catch {
-      return { user: null }
+      return { user: null, expiresIn: null }
     }
   },
 
@@ -52,9 +54,15 @@ function RootComponent() {
   const context = Route.useRouteContext()
   const hydrate = useAuthStore((s) => s.hydrate)
 
+  const handleExpired = useCallback(() => {
+    hydrate(null)
+  }, [hydrate])
+
+  useTokenRefresh({ onExpired: handleExpired })
+
   useEffect(() => {
-    hydrate(context.user)
-  }, [context.user, hydrate])
+    hydrate(context.user, context.expiresIn)
+  }, [context.user, context.expiresIn, hydrate])
 
   return <Outlet />
 }

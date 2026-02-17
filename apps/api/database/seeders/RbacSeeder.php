@@ -66,23 +66,13 @@ class RbacSeeder extends Seeder
                 'role' => 'admin',
             ],
             [
-                'email' => 'mod@example.com',
-                'name' => 'Mod User',
-                'role' => 'moderator',
-            ],
-            [
-                'email' => 'user@example.com',
-                'name' => 'Standard User',
+                'email' => 'test@test.com',
+                'name' => 'Test User',
                 'role' => 'user',
             ],
             [
-                'email' => 'john@example.com',
-                'name' => 'John Doe',
-                'role' => 'user',
-            ],
-            [
-                'email' => 'jane@example.com',
-                'name' => 'Jane Smith',
+                'email' => 'refresh-test@example.com',
+                'name' => 'Refresh Test User',
                 'role' => 'user',
             ],
         ];
@@ -92,7 +82,7 @@ class RbacSeeder extends Seeder
                 ['email' => $userData['email']],
                 [
                     'name' => $userData['name'],
-                    'password' => bcrypt('password'),
+                    'password' => bcrypt('Admin1234!'),
                     'email_verified_at' => now(),
                 ]
             );
@@ -100,11 +90,9 @@ class RbacSeeder extends Seeder
         }
 
         $this->command->info('RBAC seeding completed!');
-        $this->command->info('Test users created (password: "password" for all):');
+        $this->command->info('Test users created (password: "Admin1234!" for all):');
         $this->command->info('  - admin@example.com (admin)');
-        $this->command->info('  - mod@example.com (moderator)');
-        $this->command->info('  - user@example.com (user)');
-        $this->command->info('  - john@example.com (user)');
-        $this->command->info('  - jane@example.com (user)');
+        $this->command->info('  - test@test.com (user)');
+        $this->command->info('  - refresh-test@example.com (user)');
     }
 }

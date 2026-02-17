@@ -235,22 +235,25 @@ async function seed() {
   console.log("\nCreating test users...");
   const testUsers = [
     {
+      id: "admin-00000000-0000-0000-0000-000000000001",
       email: "admin@example.com",
       name: "Admin User",
       roleSlug: "admin",
       password: "Admin1234!",
     },
     {
-      email: "mod@example.com",
-      name: "Moderator",
-      roleSlug: "moderator",
-      password: "Mod1234!",
+      id: "user-00000000-0000-0000-0000-000000000002",
+      email: "test@test.com",
+      name: "Test User",
+      roleSlug: "user",
+      password: "Test1234!",
     },
     {
-      email: "user@example.com",
-      name: "Standard User",
+      id: "user-00000000-0000-0000-0000-000000000003",
+      email: "refresh-test@example.com",
+      name: "Refresh Test User",
       roleSlug: "user",
-      password: "User1234!",
+      password: "Refresh1234!",
     },
   ];
 
@@ -270,6 +273,7 @@ async function seed() {
     const [user] = await db
       .insert(schema.users)
       .values({
+        id: userData.id,
         email: userData.email,
         name: userData.name,
         passwordHash,

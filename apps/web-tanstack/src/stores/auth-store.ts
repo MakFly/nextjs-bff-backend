@@ -16,12 +16,13 @@ import type { LoginCredentials, RegisterData, OAuthProvider } from '@rbac/types'
 
 type AuthState = {
   user: User | null
+  expiresIn: number | null
   isHydrated: boolean
   isLoading: boolean
   error: string | null
 
-  setUser: (user: User | null) => void
-  hydrate: (user: User | null) => void
+  setUser: (user: User | null, expiresIn?: number | null) => void
+  hydrate: (user: User | null, expiresIn?: number | null) => void
   login: (credentials: LoginCredentials) => Promise<void>
   register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
@@ -37,19 +38,20 @@ type AuthState = {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  expiresIn: null,
   isHydrated: false,
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user }),
+  setUser: (user, expiresIn) => set({ user, ...(expiresIn !== undefined && { expiresIn }) }),
 
-  hydrate: (user) => set({ user, isHydrated: true }),
+  hydrate: (user, expiresIn) => set({ user, isHydrated: true, ...(expiresIn !== undefined && { expiresIn }) }),
 
   login: async (credentials) => {
     set({ error: null, isLoading: true })
     try {
       const response = await loginFn({ data: credentials })
-      set({ user: response.user, isLoading: false })
+      set({ user: response.user, expiresIn: response.expiresIn, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed'
       set({ error: message, isLoading: false })
@@ -61,7 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ error: null, isLoading: true })
     try {
       const response = await registerFn({ data })
-      set({ user: response.user, isLoading: false })
+      set({ user: response.user, expiresIn: response.expiresIn, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed'
       set({ error: message, isLoading: false })
@@ -73,20 +75,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ error: null, isLoading: true })
     try {
       await logoutFn()
-      set({ user: null, isLoading: false })
+      set({ user: null, expiresIn: null, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Logout failed'
-      set({ error: message, user: null, isLoading: false })
+      set({ error: message, user: null, expiresIn: null, isLoading: false })
     }
   },
 
   refreshUser: async () => {
     set({ error: null })
     try {
-      const user = await getCurrentUserFn()
-      set({ user })
+      const result = await getCurrentUserFn()
+      if (result) {
+        set({ user: result.user, expiresIn: result.expiresIn })
+      } else {
+        set({ user: null, expiresIn: null })
+      }
     } catch (err) {
-      set({ user: null })
+      set({ user: null, expiresIn: null })
       const message =
         err instanceof Error ? err.message : 'Failed to refresh user'
       set({ error: message })

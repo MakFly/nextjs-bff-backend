@@ -1,18 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ClockIcon, RefreshCwIcon } from 'lucide-react'
-import { getTokenStatusFn, refreshTokenFn, type TokenStatusInfo } from '@/lib/server/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
-
-const DEFAULT_STATUS: TokenStatusInfo = {
-  expiresAt: null,
-  remainingSeconds: 0,
-  isExpired: true,
-  shouldRefresh: true,
-  shouldWarn: true,
-}
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return 'Expired'
@@ -41,67 +32,58 @@ export function TokenStatus({
   showIcon = true,
   compact = false,
 }: TokenStatusProps) {
-  const [status, setStatus] = useState<TokenStatusInfo>(DEFAULT_STATUS)
-  const setUser = useAuthStore((s) => s.setUser)
-  const refreshInProgress = useRef(false)
-  const lastRefreshAt = useRef(0)
-  const REFRESH_COOLDOWN_MS = 2000
+  const expiresIn = useAuthStore((s) => s.expiresIn)
+  const user = useAuthStore((s) => s.user)
+  const expiresAtRef = useRef<number | null>(null)
+  const [remaining, setRemaining] = useState(0)
 
+  // Compute expiresAt timestamp when expiresIn changes
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const data = await getTokenStatusFn()
-        setStatus(data)
-      } catch {
-        setStatus(DEFAULT_STATUS)
-      }
+    if (expiresIn != null && expiresIn > 0) {
+      expiresAtRef.current = Date.now() + expiresIn * 1000
+      setRemaining(expiresIn)
+    } else {
+      expiresAtRef.current = null
+      setRemaining(0)
+    }
+  }, [expiresIn])
+
+  // Countdown interval
+  useEffect(() => {
+    if (!expiresAtRef.current) return
+
+    const tick = () => {
+      const r = Math.floor((expiresAtRef.current! - Date.now()) / 1000)
+      setRemaining(Math.max(0, r))
     }
 
-    fetchStatus()
-    const interval = setInterval(fetchStatus, 1000)
-
+    tick()
+    const interval = setInterval(tick, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [expiresIn])
 
-  useEffect(() => {
-    const shouldAttemptRefresh =
-      (status.shouldRefresh || status.isExpired) &&
-      !refreshInProgress.current &&
-      Date.now() - lastRefreshAt.current >= REFRESH_COOLDOWN_MS
-    if (!shouldAttemptRefresh) return
-
-    refreshInProgress.current = true
-    refreshTokenFn()
-      .then(({ user }) => {
-        setUser(user)
-        lastRefreshAt.current = Date.now()
-      })
-      .catch(() => {
-        setStatus(DEFAULT_STATUS)
-      })
-      .finally(() => {
-        refreshInProgress.current = false
-      })
-  }, [status.shouldRefresh, status.isExpired, setUser])
+  const isExpired = !user || remaining <= 0
+  const shouldRefresh = remaining > 0 && remaining < 300
+  const shouldWarn = remaining > 0 && remaining < 600
 
   const getStatusColor = () => {
-    if (status.isExpired) return 'text-red-500'
-    if (status.shouldRefresh) return 'text-orange-500'
-    if (status.shouldWarn) return 'text-yellow-500'
+    if (isExpired) return 'text-red-500'
+    if (shouldRefresh) return 'text-orange-500'
+    if (shouldWarn) return 'text-yellow-500'
     return 'text-green-500'
   }
 
   const getStatusBg = () => {
-    if (status.isExpired) return 'bg-red-500/10 border-red-500/20'
-    if (status.shouldRefresh) return 'bg-orange-500/10 border-orange-500/20'
-    if (status.shouldWarn) return 'bg-yellow-500/10 border-yellow-500/20'
+    if (isExpired) return 'bg-red-500/10 border-red-500/20'
+    if (shouldRefresh) return 'bg-orange-500/10 border-orange-500/20'
+    if (shouldWarn) return 'bg-yellow-500/10 border-yellow-500/20'
     return 'bg-green-500/10 border-green-500/20'
   }
 
   const getStatusLabel = () => {
-    if (status.isExpired) return 'Session expired'
-    if (status.shouldRefresh) return 'Refresh soon'
-    if (status.shouldWarn) return 'Token expiring'
+    if (isExpired) return 'Session expired'
+    if (shouldRefresh) return 'Refresh soon'
+    if (shouldWarn) return 'Token expiring'
     return 'Session active'
   }
 
@@ -115,7 +97,7 @@ export function TokenStatus({
         )}
       >
         {showIcon && <ClockIcon className="h-3 w-3" />}
-        <span>{formatTime(status.remainingSeconds)}</span>
+        <span>{formatTime(remaining)}</span>
       </div>
     )
   }
@@ -130,7 +112,7 @@ export function TokenStatus({
       )}
     >
       {showIcon &&
-        (status.shouldRefresh || status.isExpired ? (
+        (shouldRefresh || isExpired ? (
           <RefreshCwIcon className="h-3.5 w-3.5 animate-spin" />
         ) : (
           <ClockIcon className="h-3.5 w-3.5" />
@@ -138,9 +120,9 @@ export function TokenStatus({
       <div className="flex flex-col">
         <span className="font-medium">{getStatusLabel()}</span>
         <span className="opacity-80">
-          {status.isExpired
+          {isExpired
             ? 'Please login again'
-            : `Expires in ${formatTime(status.remainingSeconds)}`}
+            : `Expires in ${formatTime(remaining)}`}
         </span>
       </div>
     </div>
