@@ -4,6 +4,7 @@ vendor/
 
 # Build outputs
 .next/
+.output/
 .turbo/
 dist/
 build/
@@ -31,9 +32,18 @@ npm-debug.log*
 apps/api/storage/*.key
 apps/api/bootstrap/cache/*
 
+# Symfony
+apps/api-sf/var/
+apps/api-sf/.phpunit/
+apps/api-sf/src/DataFixtures/
+
 # Testing
 coverage/
 .phpunit.result.cache
 
 # Cache
 *.cache
+
+# Database
+database.sqlite
+*.sqlite

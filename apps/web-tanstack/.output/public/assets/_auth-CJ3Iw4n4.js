@@ -1,1 +1,0 @@
-import{j as e,O as r}from"./main-6Nm7VAMW.js";import{G as t}from"./grain-overlay-DXe8QWd5.js";function n(){return e.jsxs("div",{className:"relative flex min-h-screen items-center justify-center bg-[var(--background-deep,var(--background))] p-4",children:[e.jsx(t,{}),e.jsx(r,{})]})}export{n as component};

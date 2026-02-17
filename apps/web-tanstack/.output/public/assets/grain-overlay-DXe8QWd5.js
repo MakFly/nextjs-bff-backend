@@ -1,1 +1,0 @@
-import{j as e}from"./main-6Nm7VAMW.js";function r(){return e.jsx("div",{className:"pointer-events-none fixed inset-0 z-50 opacity-[0.03]",style:{backgroundImage:"url(/noise.svg)",backgroundRepeat:"repeat",backgroundSize:"200px 200px"}})}export{r as G};
