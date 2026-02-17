@@ -1,4 +1,8 @@
-import { getCookie, setCookie, deleteCookie } from '@tanstack/react-start/server'
+import {
+  getCookie,
+  setCookie,
+  deleteCookie,
+} from '@tanstack/react-start/server'
 import type {
   AuthAdapter,
   AdapterConfig,
@@ -43,7 +47,7 @@ export abstract class BaseAdapter implements AuthAdapter {
       body?: unknown
       headers?: Record<string, string>
       includeAuth?: boolean
-    } = {}
+    } = {},
   ): Promise<T> {
     const { body, headers = {}, includeAuth = true } = options
     const url = `${this.config.baseUrl}${path}`
@@ -73,7 +77,9 @@ export abstract class BaseAdapter implements AuthAdapter {
 
       if (!response.ok) {
         let errorBody: unknown
-        try { errorBody = await response.json() } catch {}
+        try {
+          errorBody = await response.json()
+        } catch {}
         throw AdapterError.fromResponse(response, errorBody)
       }
 
@@ -93,7 +99,7 @@ export abstract class BaseAdapter implements AuthAdapter {
       throw new AdapterError(
         error instanceof Error ? error.message : 'Network error',
         0,
-        'NETWORK_ERROR'
+        'NETWORK_ERROR',
       )
     }
   }
@@ -115,11 +121,15 @@ export abstract class BaseAdapter implements AuthAdapter {
       })
 
       const expiresAt = calculateExpirationTimestamp(expiresIn)
-      setCookie(COOKIE_NAMES.TOKEN_EXPIRES_AT, formatExpirationForCookie(expiresAt), {
-        ...BASE_COOKIE_CONFIG,
-        httpOnly: false,
-        maxAge: expiresIn,
-      })
+      setCookie(
+        COOKIE_NAMES.TOKEN_EXPIRES_AT,
+        formatExpirationForCookie(expiresAt),
+        {
+          ...BASE_COOKIE_CONFIG,
+          httpOnly: false,
+          maxAge: expiresIn,
+        },
+      )
     }
 
     if (tokens.refresh_token) {
@@ -132,12 +142,14 @@ export abstract class BaseAdapter implements AuthAdapter {
   }
 
   protected storeTokenExpiration(expiresAt: number | string): void {
-    const iso = typeof expiresAt === 'number'
-      ? formatExpirationForCookie(expiresAt)
-      : expiresAt
-    const maxAge = typeof expiresAt === 'number'
-      ? Math.max(0, expiresAt - Math.floor(Date.now() / 1000))
-      : TOKEN_CONFIG.ACCESS_TOKEN_MAX_AGE
+    const iso =
+      typeof expiresAt === 'number'
+        ? formatExpirationForCookie(expiresAt)
+        : expiresAt
+    const maxAge =
+      typeof expiresAt === 'number'
+        ? Math.max(0, expiresAt - Math.floor(Date.now() / 1000))
+        : TOKEN_CONFIG.ACCESS_TOKEN_MAX_AGE
     setCookie(COOKIE_NAMES.TOKEN_EXPIRES_AT, iso, {
       ...BASE_COOKIE_CONFIG,
       httpOnly: false,

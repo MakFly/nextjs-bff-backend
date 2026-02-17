@@ -57,7 +57,8 @@ export function AnimatedMetric({
     const duration = 1000
     const steps = 60
     const stepDuration = duration / steps
-    const increment = (value - displayValue) / steps
+    const startValue = displayValue
+    const increment = (value - startValue) / steps
 
     let currentStep = 0
     const interval = setInterval(() => {
@@ -66,11 +67,12 @@ export function AnimatedMetric({
         setDisplayValue(value)
         clearInterval(interval)
       } else {
-        setDisplayValue((prev) => prev + increment)
+        setDisplayValue(startValue + increment * currentStep)
       }
     }, stepDuration)
 
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- displayValue intentionally captured once at effect start
   }, [value, isVisible])
 
   // Format value

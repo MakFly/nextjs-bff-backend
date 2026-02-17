@@ -17,12 +17,14 @@ import {
   ProfileSkeleton,
   ListItemSkeleton,
   DashboardSkeleton,
+  HelpSkeleton,
   PageSkeleton,
 } from '@/components/ui/skeletons'
 import { TokenStatus } from '@/components/auth/token-status'
 
 export const Route = createFileRoute('/dashboard/help')({
   component: HelpPage,
+  pendingComponent: HelpSkeleton,
 })
 
 function HelpPage() {

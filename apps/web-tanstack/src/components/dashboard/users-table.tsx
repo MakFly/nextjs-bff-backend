@@ -12,80 +12,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import {
-  MoreHorizontalIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-} from 'lucide-react'
-import { EditIcon } from 'lucide-react'
+import { MoreHorizontalIcon, EyeIcon, EditIcon, TrashIcon } from 'lucide-react'
+import type { User, Role } from '@/lib/services/rbac-types'
 
-export interface User {
-  id: number
-  name: string
-  email: string
-  roles: string[]
-  status?: 'active' | 'inactive'
+interface UsersTableProps {
+  users: User[]
+  roles?: Role[]
 }
-
-const mockUsers: User[] = [
-  {
-    id: 1,
-    name: 'Admin User',
-    email: 'admin@example.com',
-    roles: ['admin'],
-    status: 'active',
-  },
-  {
-    id: 2,
-    name: 'Moderator',
-    email: 'moderator@example.com',
-    roles: ['moderator'],
-    status: 'active',
-  },
-  {
-    id: 3,
-    name: 'Regular User',
-    email: 'user@example.com',
-    roles: ['user'],
-    status: 'inactive',
-  },
-  {
-    id: 4,
-    name: 'John Doe',
-    email: 'john@example.com',
-    roles: ['user'],
-    status: 'active',
-  },
-  {
-    id: 5,
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    roles: ['editor'],
-    status: 'active',
-  },
-  {
-    id: 6,
-    name: 'Bob Wilson',
-    email: 'bob@example.com',
-    roles: ['user'],
-    status: 'inactive',
-  },
-  {
-    id: 7,
-    name: 'Alice Brown',
-    email: 'alice@example.com',
-    roles: ['moderator'],
-    status: 'active',
-  },
-  {
-    id: 8,
-    name: 'Charlie Davis',
-    email: 'charlie@example.com',
-    roles: ['editor'],
-    status: 'active',
-  },
-]
 
 export const userColumns: ColumnDef<User>[] = [
   {
@@ -100,23 +33,26 @@ export const userColumns: ColumnDef<User>[] = [
     accessorKey: 'roles',
     header: 'Roles',
     cell: ({ row }) => (
-      <div className="flex gap-1">
-        {row.original.roles.map((role) => (
-          <Badge key={role} variant="secondary" className="text-xs">
-            {role}
+      <div className="flex gap-1 flex-wrap">
+        {row.original.roles?.map((role) => (
+          <Badge
+            key={role.id || role.slug}
+            variant="secondary"
+            className="text-xs"
+          >
+            {role.name || role.slug}
           </Badge>
         ))}
       </div>
     ),
   },
   {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => (
-      <Badge variant={row.original.status === 'active' ? 'default' : 'outline'}>
-        {row.original.status}
-      </Badge>
-    ),
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => {
+      const date = row.original.createdAt
+      return date ? new Date(date).toLocaleDateString() : '-'
+    },
   },
   {
     id: 'actions',
@@ -154,11 +90,11 @@ export const userColumns: ColumnDef<User>[] = [
   },
 ]
 
-export function UsersTable() {
+export function UsersTable({ users, roles = [] }: UsersTableProps) {
   return (
     <DataTable
       columns={userColumns}
-      data={mockUsers}
+      data={users}
       search={{
         enabled: true,
         placeholder: 'Search users...',

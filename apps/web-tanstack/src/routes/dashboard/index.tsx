@@ -3,13 +3,18 @@ import { UserIcon, ShieldIcon, KeyIcon, CalendarIcon, ActivityIcon } from 'lucid
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth-store'
+import { DashboardSkeleton } from '@/components/ui/skeletons'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
+  pendingComponent: DashboardSkeleton,
 })
 
 function DashboardPage() {
   const user = useAuthStore((s) => s.user)
+  const isHydrated = useAuthStore((s) => s.isHydrated)
+
+  if (!isHydrated) return <DashboardSkeleton />
 
   const accountAge = user?.created_at
     ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))

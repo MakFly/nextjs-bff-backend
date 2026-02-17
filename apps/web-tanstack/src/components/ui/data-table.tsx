@@ -212,15 +212,6 @@ export function DataTable<TData, TValue>({
     },
   })
 
-  React.useEffect(() => {
-    if (searchEnabled && search.keys && search.keys.length > 0) {
-      const searchValue = globalFilter
-      if (searchValue) {
-        table.setPageIndex(0)
-      }
-    }
-  }, [globalFilter, searchEnabled, search.keys, table])
-
   const renderSortIcon = (header: any) => {
     if (!sortEnabled || !header.column.getCanSort()) return null
     const sorted = header.column.getIsSorted()
@@ -281,7 +272,11 @@ export function DataTable<TData, TValue>({
             <Input
               placeholder={search.placeholder ?? 'Search...'}
               value={globalFilter ?? ''}
-              onChange={(event) => setGlobalFilter(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value
+                setGlobalFilter(value)
+                if (value) table.setPageIndex(0)
+              }}
               className={
                 columnVisibilityEnabled || actions.enabled
                   ? 'max-w-sm'

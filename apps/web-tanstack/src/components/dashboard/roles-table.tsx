@@ -12,81 +12,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import {
-  MoreHorizontalIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  EditIcon,
-  ShieldIcon,
-} from 'lucide-react'
+import { MoreHorizontalIcon, EyeIcon, EditIcon, TrashIcon } from 'lucide-react'
+import type { Role, Permission } from '@/lib/services/rbac-types'
 
-export interface Role {
-  id: number
-  name: string
-  slug: string
-  permissions: number
-  description?: string
+export interface RoleWithPermissions extends Role {
+  permissions: Permission[]
 }
 
-const mockRoles: Role[] = [
-  {
-    id: 1,
-    name: 'Admin',
-    slug: 'admin',
-    permissions: 12,
-    description: 'Full access to all features',
-  },
-  {
-    id: 2,
-    name: 'Moderator',
-    slug: 'moderator',
-    permissions: 8,
-    description: 'Can manage content and users',
-  },
-  {
-    id: 3,
-    name: 'User',
-    slug: 'user',
-    permissions: 3,
-    description: 'Basic access to the platform',
-  },
-  {
-    id: 4,
-    name: 'Editor',
-    slug: 'editor',
-    permissions: 5,
-    description: 'Can create and edit content',
-  },
-  {
-    id: 5,
-    name: 'Viewer',
-    slug: 'viewer',
-    permissions: 2,
-    description: 'Read-only access',
-  },
-  {
-    id: 6,
-    name: 'Super Admin',
-    slug: 'superadmin',
-    permissions: 15,
-    description: 'Root access',
-  },
-  {
-    id: 7,
-    name: 'Contributor',
-    slug: 'contributor',
-    permissions: 4,
-    description: 'Can contribute content',
-  },
-  {
-    id: 8,
-    name: 'Analyst',
-    slug: 'analyst',
-    permissions: 6,
-    description: 'Access to analytics',
-  },
-]
+interface RolesTableProps {
+  roles: Role[]
+  permissions?: Permission[]
+}
 
 export const roleColumns: ColumnDef<Role>[] = [
   {
@@ -106,7 +42,7 @@ export const roleColumns: ColumnDef<Role>[] = [
     accessorKey: 'permissions',
     header: 'Permissions',
     cell: ({ row }) => (
-      <Badge variant="secondary">{row.original.permissions}</Badge>
+      <Badge variant="secondary">{row.original.permissions?.length || 0}</Badge>
     ),
   },
   {
@@ -145,11 +81,11 @@ export const roleColumns: ColumnDef<Role>[] = [
   },
 ]
 
-export function RolesTable() {
+export function RolesTable({ roles, permissions = [] }: RolesTableProps) {
   return (
     <DataTable
       columns={roleColumns}
-      data={mockRoles}
+      data={roles}
       search={{
         enabled: true,
         placeholder: 'Search roles...',

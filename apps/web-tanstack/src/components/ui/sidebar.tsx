@@ -74,9 +74,7 @@ function SidebarProvider({
   
   // Use a ref to always have the current value of open
   const openRef = React.useRef(open)
-  React.useEffect(() => {
-    openRef.current = open
-  }, [open])
+  openRef.current = open
   
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {

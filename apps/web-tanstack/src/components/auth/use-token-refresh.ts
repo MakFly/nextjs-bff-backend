@@ -2,22 +2,24 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { refreshTokenFn } from '@/lib/server/auth'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore, getStoredExpiresAt } from '@/stores/auth-store'
 
 interface UseTokenRefreshOptions {
   onExpired?: () => void
 }
 
 export function useTokenRefresh({ onExpired }: UseTokenRefreshOptions = {}) {
+  const isHydrated = useAuthStore((s) => s.isHydrated)
   const expiresIn = useAuthStore((s) => s.expiresIn)
   const setUser = useAuthStore((s) => s.setUser)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const refreshInProgress = useRef(false)
   const lastRefreshAt = useRef(0)
   const onExpiredRef = useRef(onExpired)
+  const hasInitialized = useRef(false)
   onExpiredRef.current = onExpired
 
-  const COOLDOWN_MS = 5000
+  const COOLDOWN_MS = 10000
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -55,20 +57,42 @@ export function useTokenRefresh({ onExpired }: UseTokenRefreshOptions = {}) {
     [clearTimer, doRefresh],
   )
 
-  // Schedule timer when expiresIn changes (login, refresh)
+  useEffect(() => {
+    if (!isHydrated) return
+    if (hasInitialized.current) return
+    hasInitialized.current = true
+
+    if (expiresIn != null && expiresIn > 0) {
+      scheduleRefresh(expiresIn)
+      return
+    }
+
+    if (typeof window !== 'undefined' && expiresIn == null) {
+      const storedExpiresAt = getStoredExpiresAt()
+      if (storedExpiresAt) {
+        const expiresInFromStorage = Math.floor(
+          (storedExpiresAt - Date.now()) / 1000,
+        )
+        if (expiresInFromStorage > 0) {
+          scheduleRefresh(expiresInFromStorage)
+        } else {
+          doRefresh()
+        }
+      }
+    }
+  }, [isHydrated, expiresIn, scheduleRefresh, doRefresh])
+
   useEffect(() => {
     if (expiresIn == null || expiresIn <= 0) return
     scheduleRefresh(expiresIn)
     return () => clearTimer()
   }, [expiresIn, scheduleRefresh, clearTimer])
 
-  // Re-check on visibility change (tab back to foreground)
   useEffect(() => {
     if (expiresIn == null) return
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return
-      // Re-schedule based on current expiresIn from store
       const currentExpiresIn = useAuthStore.getState().expiresIn
       if (currentExpiresIn == null || currentExpiresIn <= 0) {
         doRefresh()

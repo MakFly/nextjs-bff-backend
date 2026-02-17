@@ -12,7 +12,23 @@ import {
   getCurrentUserFn,
   getOAuthUrlFn,
 } from '@/lib/server/auth'
+import { COOKIE_NAMES } from '@/lib/config/env'
 import type { LoginCredentials, RegisterData, OAuthProvider } from '@rbac/types'
+
+const getStoredExpiresAt = (): number | null => {
+  if (typeof document === 'undefined') return null
+  const name = COOKIE_NAMES.TOKEN_EXPIRES_AT + '='
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim()
+    if (trimmed.startsWith(name)) {
+      const isoValue = decodeURIComponent(trimmed.substring(name.length))
+      const ms = new Date(isoValue).getTime()
+      return isNaN(ms) ? null : ms
+    }
+  }
+  return null
+}
 
 type AuthState = {
   user: User | null
@@ -36,105 +52,124 @@ type AuthState = {
   isAdmin: () => boolean
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  expiresIn: null,
-  isHydrated: false,
-  isLoading: false,
-  error: null,
+export const useAuthStore = create<AuthState>()(
+  (set, get) => ({
+      user: null,
+      expiresIn: null,
+      isHydrated: false,
+      isLoading: false,
+      error: null,
 
-  setUser: (user, expiresIn) => set({ user, ...(expiresIn !== undefined && { expiresIn }) }),
+      setUser: (user, expiresIn) => {
+        set({ user, ...(expiresIn !== undefined && { expiresIn }) })
+      },
 
-  hydrate: (user, expiresIn) => set({ user, isHydrated: true, ...(expiresIn !== undefined && { expiresIn }) }),
+      hydrate: (user, expiresIn) =>
+        set({
+          user,
+          isHydrated: true,
+          ...(expiresIn !== undefined && { expiresIn }),
+        }),
 
-  login: async (credentials) => {
-    set({ error: null, isLoading: true })
-    try {
-      const response = await loginFn({ data: credentials })
-      set({ user: response.user, expiresIn: response.expiresIn, isLoading: false })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed'
-      set({ error: message, isLoading: false })
-      throw err
-    }
-  },
+      login: async (credentials) => {
+        set({ error: null, isLoading: true })
+        try {
+          const response = await loginFn({ data: credentials })
+          set({
+            user: response.user,
+            expiresIn: response.expiresIn,
+            isLoading: false,
+          })
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Login failed'
+          set({ error: message, isLoading: false })
+          throw err
+        }
+      },
 
-  register: async (data) => {
-    set({ error: null, isLoading: true })
-    try {
-      const response = await registerFn({ data })
-      set({ user: response.user, expiresIn: response.expiresIn, isLoading: false })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed'
-      set({ error: message, isLoading: false })
-      throw err
-    }
-  },
+      register: async (data) => {
+        set({ error: null, isLoading: true })
+        try {
+          const response = await registerFn({ data })
+          set({
+            user: response.user,
+            expiresIn: response.expiresIn,
+            isLoading: false,
+          })
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : 'Registration failed'
+          set({ error: message, isLoading: false })
+          throw err
+        }
+      },
 
-  logout: async () => {
-    set({ error: null, isLoading: true })
-    try {
-      await logoutFn()
-      set({ user: null, expiresIn: null, isLoading: false })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Logout failed'
-      set({ error: message, user: null, expiresIn: null, isLoading: false })
-    }
-  },
+      logout: async () => {
+        set({ error: null, isLoading: true })
+        try {
+          await logoutFn()
+          set({ user: null, expiresIn: null, isLoading: false })
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Logout failed'
+          set({ error: message, user: null, expiresIn: null, isLoading: false })
+        }
+      },
 
-  refreshUser: async () => {
-    set({ error: null })
-    try {
-      const result = await getCurrentUserFn()
-      if (result) {
-        set({ user: result.user, expiresIn: result.expiresIn })
-      } else {
-        set({ user: null, expiresIn: null })
-      }
-    } catch (err) {
-      set({ user: null, expiresIn: null })
-      const message =
-        err instanceof Error ? err.message : 'Failed to refresh user'
-      set({ error: message })
-      throw err
-    }
-  },
+      refreshUser: async () => {
+        set({ error: null })
+        try {
+          const result = await getCurrentUserFn()
+          if (result) {
+            set({ user: result.user, expiresIn: result.expiresIn })
+          } else {
+            set({ user: null, expiresIn: null })
+          }
+        } catch (err) {
+          set({ user: null, expiresIn: null })
+          const message =
+            err instanceof Error ? err.message : 'Failed to refresh user'
+          set({ error: message })
+          throw err
+        }
+      },
 
-  loginWithOAuth: async (provider) => {
-    try {
-      const { url } = await getOAuthUrlFn({ data: { provider } })
-      window.location.href = url
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'OAuth redirect failed'
-      set({ error: message })
-      throw err
-    }
-  },
+      loginWithOAuth: async (provider) => {
+        try {
+          const { url } = await getOAuthUrlFn({ data: { provider } })
+          window.location.href = url
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : 'OAuth redirect failed'
+          set({ error: message })
+          throw err
+        }
+      },
 
-  clearError: () => set({ error: null }),
+      clearError: () => set({ error: null }),
 
-  isAuthenticated: () => !!get().user,
+      isAuthenticated: () => !!get().user,
 
-  hasPermission: (resource, action) => {
-    const { user } = get()
-    if (!user) return false
-    return checkHasPermission(user, resource, action)
-  },
+      hasPermission: (resource, action) => {
+        const { user } = get()
+        if (!user) return false
+        return checkHasPermission(user, resource, action)
+      },
 
-  hasRole: (roleSlug) => {
-    const { user } = get()
-    if (!user) return false
-    return checkHasRole(user, roleSlug)
-  },
+      hasRole: (roleSlug) => {
+        const { user } = get()
+        if (!user) return false
+        return checkHasRole(user, roleSlug)
+      },
 
-  isAdmin: () => {
-    const { user } = get()
-    if (!user) return false
-    return checkIsAdmin(user)
-  },
-}))
+      isAdmin: () => {
+        const { user } = get()
+        if (!user) return false
+        return checkIsAdmin(user)
+      },
+  }),
+)
 
 export const useUser = () => useAuthStore((s) => s.user)
 export const useIsHydrated = () => useAuthStore((s) => s.isHydrated)
 export const useIsAuthenticated = () => useAuthStore((s) => !!s.user)
+export { getStoredExpiresAt }

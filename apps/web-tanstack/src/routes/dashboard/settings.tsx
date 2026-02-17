@@ -1,8 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { SettingsForm } from '@/components/dashboard/settings-form'
+import { SettingsSkeleton } from '@/components/ui/skeletons'
 
 export const Route = createFileRoute('/dashboard/settings')({
   component: SettingsPage,
+  pendingComponent: SettingsSkeleton,
 })
 
 function SettingsPage() {

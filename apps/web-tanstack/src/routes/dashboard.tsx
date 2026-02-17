@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { AppLayout } from '@/components/app-layout'
+import { DashboardSkeleton } from '@/components/ui/skeletons'
 
 export const Route = createFileRoute('/dashboard')({
   beforeLoad: ({ context, location }) => {
@@ -11,6 +12,7 @@ export const Route = createFileRoute('/dashboard')({
     }
   },
   component: DashboardLayout,
+  pendingComponent: DashboardSkeleton,
 })
 
 function DashboardLayout() {
